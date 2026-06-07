@@ -98,6 +98,10 @@ export default function Home() {
   const [topPicksLoading, setTopPicksLoading] = useState(false);
   const [topPicksError, setTopPicksError] = useState<string | null>(null);
 
+  const [cheapoPicks, setCheapoPicks] = useState<any[]>([]);
+  const [cheapoLoading, setCheapoLoading] = useState(false);
+  const [cheapoError, setCheapoError] = useState<string | null>(null);
+
   async function loadForecasts() {
     try {
       const res = await fetch("/api/forecasts");
@@ -149,6 +153,25 @@ export default function Home() {
       setTopPicksError("Network error — please try again.");
     } finally {
       setTopPicksLoading(false);
+    }
+  }
+
+  async function fetchCheapoPicks() {
+    setCheapoLoading(true);
+    setCheapoError(null);
+    setCheapoPicks([]);
+    try {
+      const res = await fetch("/api/under10-picks");
+      const data = await res.json();
+      if (!res.ok) {
+        setCheapoError(data.error || "Failed to fetch picks.");
+        return;
+      }
+      setCheapoPicks(data.picks ?? []);
+    } catch {
+      setCheapoError("Network error — please try again.");
+    } finally {
+      setCheapoLoading(false);
     }
   }
 
@@ -284,8 +307,20 @@ export default function Home() {
               {topPicksLoading ? "Curating picks…" : "Top 10 Upcoming Good Stocks"}
             </button>
           </div>
+            <button
+              onClick={fetchCheapoPicks}
+              disabled={cheapoLoading}
+              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-semibold px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {cheapoLoading ? "Hunting bargains…" : `Top 10 potential below $10 for "CHEAPO ppl!"`}
+            </button>
+          </div>
           {aiPickError && <p className="mt-2 text-sm text-red-600 font-medium">{aiPickError}</p>}
           {topPicksError && <p className="mt-2 text-sm text-red-600 font-medium">{topPicksError}</p>}
+          {cheapoError && <p className="mt-2 text-sm text-red-600 font-medium">{cheapoError}</p>}
         </div>
 
         {/* Top 20 AI picks card */}
@@ -353,6 +388,83 @@ export default function Home() {
                     } catch { setError("Network error."); } finally { setLoading(false); }
                   }}
                 />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Cheapo picks card */}
+        {cheapoPicks.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border-2 border-orange-200 p-6 space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Top 10 potential below $10 <span className="text-orange-600">for "CHEAPO ppl!"</span></h2>
+                <p className="text-xs text-slate-400">Real-time price verified under $10 — all sectors — educational only</p>
+              </div>
+              <span className="ml-auto shrink-0 text-xs font-bold px-3 py-1 rounded-full bg-orange-100 text-orange-700">{cheapoPicks.length} picks</span>
+            </div>
+            <div className="space-y-2">
+              {cheapoPicks.map((pick) => (
+                <div key={pick.symbol} className="flex flex-col sm:flex-row sm:items-start gap-3 bg-slate-50 rounded-xl p-4 border border-slate-100 hover:border-orange-100 transition-colors">
+                  <span className="text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border shrink-0 mt-0.5 text-orange-600 bg-orange-50 border-orange-200">
+                    {pick.rank}
+                  </span>
+
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="font-bold text-slate-900">{pick.symbol}</span>
+                      <span className="text-slate-500 text-sm">{pick.company_name}</span>
+                      {pick.sector && (
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-100">{pick.sector}</span>
+                      )}
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        pick.sentiment === "Extremely Bullish" ? "bg-emerald-200 text-emerald-800"
+                        : pick.sentiment === "Very Bullish" ? "bg-emerald-100 text-emerald-700"
+                        : "bg-amber-100 text-amber-700"
+                      }`}>{pick.sentiment}</span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed">{pick.catalyst}</p>
+                  </div>
+
+                  <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+                    <div className="text-center min-w-[52px]">
+                      <p className="text-xs text-slate-400 font-medium">Price</p>
+                      <p className="font-bold text-slate-900 text-sm">${pick.current_price.toFixed(2)}</p>
+                      {pick.day_change_pct !== null && pick.day_change_pct !== undefined && (
+                        <p className={`text-xs font-medium ${pick.day_change_pct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                          {pick.day_change_pct >= 0 ? "+" : ""}{pick.day_change_pct.toFixed(2)}%
+                        </p>
+                      )}
+                    </div>
+                    <div className="w-px h-10 bg-slate-200" />
+                    <div className="text-center min-w-[52px]">
+                      <p className="text-xs text-slate-400 font-medium">Target</p>
+                      <p className="font-bold text-orange-600 text-sm">${pick.predicted_price?.toFixed(2)}</p>
+                      <p className="text-xs font-semibold text-emerald-600">▲ +{pick.predicted_change_pct?.toFixed(1)}%</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        setSymbol(pick.symbol); setLoading(true); setError(null); setResult(null); setChatMessages([]);
+                        try {
+                          const res = await fetch(`/api/analyse?symbol=${pick.symbol}`);
+                          const data = await res.json();
+                          if (!res.ok) { setError(data.error || "Failed."); return; }
+                          setResult(data);
+                          loadForecasts();
+                          setChatMessages([{ role: "assistant", content: `I've finished analysing **${data.symbol}**. Current price is **$${data.quote?.c}**. Ask me anything!` }]);
+                        } catch { setError("Network error."); } finally { setLoading(false); }
+                      }}
+                      className="text-xs font-semibold underline underline-offset-2 transition-colors whitespace-nowrap text-orange-600 hover:text-orange-800"
+                    >
+                      Analyse →
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
