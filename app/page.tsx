@@ -98,18 +98,17 @@ export default function Home() {
   const [topPicksLoading, setTopPicksLoading] = useState(false);
   const [topPicksError, setTopPicksError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadForecasts() {
-      try {
-        const res = await fetch("/api/forecasts");
-        const data = await res.json();
-        setForecastHistory(data.forecasts ?? []);
-      } catch {
-        // silently ignore
-      }
+  async function loadForecasts() {
+    try {
+      const res = await fetch("/api/forecasts");
+      const data = await res.json();
+      setForecastHistory(data.forecasts ?? []);
+    } catch {
+      // silently ignore
     }
-    loadForecasts();
-  }, []);
+  }
+
+  useEffect(() => { loadForecasts(); }, []);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -173,6 +172,7 @@ export default function Home() {
       }
 
       setResult(data);
+      loadForecasts();
 
       setChatMessages([
         {
@@ -313,6 +313,7 @@ export default function Home() {
                       const data = await res.json();
                       if (!res.ok) { setError(data.error || "Failed."); return; }
                       setResult(data);
+                      loadForecasts();
                       setChatMessages([{ role: "assistant", content: `I've finished analysing **${data.symbol}**. Current price is **$${data.quote?.c}**. Ask me anything!` }]);
                     } catch { setError("Network error."); } finally { setLoading(false); }
                   }}
@@ -347,6 +348,7 @@ export default function Home() {
                       const data = await res.json();
                       if (!res.ok) { setError(data.error || "Failed."); return; }
                       setResult(data);
+                      loadForecasts();
                       setChatMessages([{ role: "assistant", content: `I've finished analysing **${data.symbol}**. Current price is **$${data.quote?.c}**. Ask me anything!` }]);
                     } catch { setError("Network error."); } finally { setLoading(false); }
                   }}
