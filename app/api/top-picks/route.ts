@@ -56,12 +56,12 @@ export async function GET() {
     }
 
     // Phase 2: GPT picks 20 stocks across all sectors
-    const prompt = `You are an elite stock research analyst. Based on these latest market news headlines, identify the TOP 20 US-listed stocks with the strongest upcoming positive catalysts across ALL sectors in the next 2-4 weeks.
+    const prompt = `You are an elite stock research analyst. Based on these latest market news headlines, identify the TOP 10 US-listed stocks with the strongest upcoming positive catalysts across ALL sectors in the next 2-4 weeks.
 
 News:
 ${JSON.stringify(combined, null, 2)}
 
-Return ONLY a valid JSON array of exactly 20 objects, no markdown:
+Return ONLY a valid JSON array of exactly 10 objects, no markdown:
 [{"symbol":"TICKER","company_name":"Name","sector":"Sector","catalyst":"Specific positive catalyst (1 sentence)","sentiment":"Very Bullish","predicted_change_pct":8,"risk_level":"Medium"}]
 
 sentiment values: "Bullish" | "Very Bullish" | "Extremely Bullish"
@@ -80,22 +80,15 @@ Rank highest conviction first. Diversify across 5+ sectors. Only real US-listed 
       return NextResponse.json({ error: "Failed to parse picks" }, { status: 500 });
     }
 
-    const picks: any[] = JSON.parse(match[0]).slice(0, 20);
+    const picks: any[] = JSON.parse(match[0]).slice(0, 10);
 
-    // Phase 3: fetch quotes in two batches
-    const half = Math.ceil(picks.length / 2);
-    const batch1 = await Promise.allSettled(
-      picks.slice(0, half).map(p =>
+    // Phase 3: fetch all 10 quotes in one batch
+    const quotesRaw = await Promise.allSettled(
+      picks.map(p =>
         fetch(`https://finnhub.io/api/v1/quote?symbol=${p.symbol}&token=${finnhubKey}`).then(r => r.json())
       )
     );
-    const batch2 = await Promise.allSettled(
-      picks.slice(half).map(p =>
-        fetch(`https://finnhub.io/api/v1/quote?symbol=${p.symbol}&token=${finnhubKey}`).then(r => r.json())
-      )
-    );
-
-    const quotes = [...batch1, ...batch2].map(r => r.status === "fulfilled" ? r.value : null);
+    const quotes = quotesRaw.map(r => r.status === "fulfilled" ? r.value : null);
 
     const enriched = picks.map((pick, i) => {
       const quote = quotes[i];
