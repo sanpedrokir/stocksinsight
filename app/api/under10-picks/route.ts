@@ -102,7 +102,7 @@ Rank highest conviction first. Only real US-listed tickers. Educational only.`;
         };
       })
       .filter((p): p is NonNullable<typeof p> => p !== null)
-      .slice(0, 5)
+      .slice(0, 10)
       .map((pick, i) => ({ ...pick, rank: i + 1 }));
 
     if (enriched.length === 0) {

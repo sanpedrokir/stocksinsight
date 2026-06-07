@@ -294,7 +294,7 @@ export default function Home() {
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              {aiPickLoading ? "Scanning AI news…" : "Top 5 AI Stocks to Lookout"}
+              {aiPickLoading ? "Scanning AI news…" : "Top 10 AI Stocks to Lookout"}
             </button>
             <button
               onClick={fetchTopPicks}
@@ -304,7 +304,7 @@ export default function Home() {
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
-              {topPicksLoading ? "Curating picks…" : "Top 5 Upcoming Good Stocks"}
+              {topPicksLoading ? "Curating picks…" : "Top 10 Upcoming Good Stocks"}
             </button>
             <button
               onClick={fetchCheapoPicks}
@@ -332,7 +332,7 @@ export default function Home() {
                 </svg>
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900">Top 5 AI Stocks to Lookout</h2>
+                <h2 className="text-base font-bold text-slate-900">Top 10 AI Stocks to Lookout</h2>
                 <p className="text-xs text-slate-400">Ranked by conviction — AI catalysts, tech news, company signals — educational only</p>
               </div>
               <span className="ml-auto shrink-0 text-xs font-bold px-3 py-1 rounded-full bg-violet-100 text-violet-700">{aiPicks.length} picks</span>
@@ -367,7 +367,7 @@ export default function Home() {
                 </svg>
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900">Top 5 Upcoming Good Stocks</h2>
+                <h2 className="text-base font-bold text-slate-900">Top 10 Upcoming Good Stocks</h2>
                 <p className="text-xs text-slate-400">Multi-source market curation across all sectors — educational only</p>
               </div>
               <span className="ml-auto shrink-0 text-xs font-bold px-3 py-1 rounded-full bg-teal-100 text-teal-700">{topPicks.length} picks</span>
