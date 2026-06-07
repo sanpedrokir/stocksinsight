@@ -56,12 +56,12 @@ export async function GET() {
     }
 
     // Phase 2: GPT picks 20 stocks across all sectors
-    const prompt = `You are an elite stock research analyst. Based on these latest market news headlines, identify the TOP 10 US-listed stocks with the strongest upcoming positive catalysts across ALL sectors in the next 2-4 weeks.
+    const prompt = `You are an elite stock research analyst. Based on these latest market news headlines, identify the TOP 5 US-listed stocks with the strongest upcoming positive catalysts across ALL sectors in the next 2-4 weeks.
 
 News:
 ${JSON.stringify(combined, null, 2)}
 
-Return ONLY a valid JSON array of exactly 10 objects, no markdown:
+Return ONLY a valid JSON array of exactly 5 objects, no markdown:
 [{"symbol":"TICKER","company_name":"Name","sector":"Sector","catalyst":"Specific positive catalyst (1 sentence)","sentiment":"Very Bullish","predicted_change_pct":8,"risk_level":"Medium"}]
 
 sentiment values: "Bullish" | "Very Bullish" | "Extremely Bullish"
@@ -80,7 +80,7 @@ Rank highest conviction first. Diversify across 5+ sectors. Only real US-listed 
       return NextResponse.json({ error: "Failed to parse picks" }, { status: 500 });
     }
 
-    const picks: any[] = JSON.parse(match[0]).slice(0, 10);
+    const picks: any[] = JSON.parse(match[0]).slice(0, 5);
 
     // Phase 3: fetch all 10 quotes in one batch
     const quotesRaw = await Promise.allSettled(

@@ -48,7 +48,7 @@ export async function GET() {
       }));
 
     // Phase 2: GPT picks 20 AI stocks
-    const prompt = `You are a top-tier AI stock analyst. Based on these latest technology news headlines, identify the TOP 10 US-listed stocks most likely to gain value from AI-related developments in the next 4 weeks.
+    const prompt = `You are a top-tier AI stock analyst. Based on these latest technology news headlines, identify the TOP 5 US-listed stocks most likely to gain value from AI-related developments in the next 4 weeks.
 
 STRICT ELIGIBILITY: Only include companies where AI is a CORE part of the business — semiconductors, AI chips, cloud/AI infrastructure, AI software platforms, LLM developers, AI data centers, robotics, or companies deriving significant direct revenue from AI products.
 
@@ -57,7 +57,7 @@ DO NOT include: airlines, media/entertainment (Disney, Netflix), retail, consume
 News:
 ${JSON.stringify(allNews, null, 2)}
 
-Return ONLY a valid JSON array of exactly 10 objects, no markdown:
+Return ONLY a valid JSON array of exactly 5 objects, no markdown:
 [{"symbol":"TICKER","company_name":"Name","ai_angle":"Specific AI product or revenue catalyst (1 sentence)","reason":"2-sentence analysis","predicted_change_pct":5,"confidence":"High"}]
 
 confidence values: "Medium" | "High" | "Very High"
@@ -75,7 +75,7 @@ Rank highest conviction first. Only real US-listed tickers. Educational only.`;
       return NextResponse.json({ error: "Failed to parse AI picks" }, { status: 500 });
     }
 
-    const picks: any[] = JSON.parse(match[0]).slice(0, 10);
+    const picks: any[] = JSON.parse(match[0]).slice(0, 5);
 
     // Phase 3: fetch all 10 quotes in one batch
     const quotesRaw = await Promise.allSettled(

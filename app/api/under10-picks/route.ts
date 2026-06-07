@@ -72,7 +72,7 @@ Rank highest conviction first. Only real US-listed tickers. Educational only.`;
       return NextResponse.json({ error: "Failed to parse picks" }, { status: 500 });
     }
 
-    const candidates: any[] = JSON.parse(match[0]).slice(0, 20);
+    const candidates: any[] = JSON.parse(match[0]).slice(0, 15);
 
     // Fetch real quotes for all candidates
     const quotesRaw = await Promise.allSettled(
@@ -101,8 +101,8 @@ Rank highest conviction first. Only real US-listed tickers. Educational only.`;
           day_change_pct: quote?.dp ?? null,
         };
       })
-      .filter(Boolean)
-      .slice(0, 10)
+      .filter((p): p is NonNullable<typeof p> => p !== null)
+      .slice(0, 5)
       .map((pick, i) => ({ ...pick, rank: i + 1 }));
 
     if (enriched.length === 0) {
