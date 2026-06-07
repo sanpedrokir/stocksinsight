@@ -91,7 +91,6 @@ function PickRow({ pick, accentColor, extraLabel, onAnalyse }: {
 export default function Home() {
   const [symbol, setSymbol] = useState("NVDA");
   const [result, setResult] = useState<any>(null);
-  const [forecastHistory, setForecastHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -114,17 +113,6 @@ export default function Home() {
   const [cheapoError, setCheapoError] = useState<string | null>(null);
   const [cheapoCategory, setCheapoCategory] = useState<string | null>(null);
 
-  async function loadForecasts() {
-    try {
-      const res = await fetch("/api/forecasts");
-      const data = await res.json();
-      setForecastHistory(data.forecasts ?? []);
-    } catch {
-      // silently ignore
-    }
-  }
-
-  useEffect(() => { loadForecasts(); }, []);
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages]);
 
   async function fetchAiPick() {
@@ -169,7 +157,6 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Failed to analyse the stock."); return; }
       setResult(data);
-      loadForecasts();
       setChatMessages([{
         role: "assistant",
         content: `I've finished analysing **${data.symbol}**. The current price is **$${data.quote?.c}** with a ${(data.quote?.dp ?? 0) >= 0 ? "+" : ""}${data.quote?.dp}% change today. Ask me anything!`,
@@ -206,7 +193,6 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Failed."); return; }
       setResult(data);
-      loadForecasts();
       setChatMessages([{ role: "assistant", content: `I've finished analysing **${data.symbol}**. Current price is **$${data.quote?.c}**. Ask me anything!` }]);
     } catch { setError("Network error."); }
     finally { setLoading(false); }
@@ -531,32 +517,6 @@ export default function Home() {
           </>
         )}
 
-        {/* Forecast history */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 mb-3 sm:mb-4">Recent Forecast History</h2>
-          {forecastHistory.length === 0 ? (
-            <p className="text-sm text-slate-500">No forecast history yet. Analyse a stock to get started.</p>
-          ) : (
-            <div className="space-y-2">
-              {forecastHistory.slice(0, 5).map((f: any, i: number) => (
-                <div key={i} className="flex items-center justify-between bg-slate-50 rounded-xl px-3 sm:px-4 py-3 gap-2">
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                    <span className="font-bold text-slate-900 text-sm shrink-0">{f.symbol}</span>
-                    {f.current_price && (
-                      <span className="text-slate-600 text-sm shrink-0">${parseFloat(f.current_price).toFixed(2)}</span>
-                    )}
-                  </div>
-                  {f.created_at && (
-                    <span className="text-xs text-slate-400 shrink-0 text-right">
-                      <span className="hidden sm:inline">{new Date(f.created_at).toLocaleString()}</span>
-                      <span className="sm:hidden">{new Date(f.created_at).toLocaleDateString()}</span>
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </main>
 
       {/* Floating chat button */}
