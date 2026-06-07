@@ -4,6 +4,79 @@ import { useEffect, useRef, useState } from "react";
 
 type Message = { role: "user" | "assistant"; content: string };
 
+function PickRow({ pick, accentColor, extraLabel, onAnalyse }: {
+  pick: any;
+  accentColor: "violet" | "teal";
+  extraLabel?: string;
+  extraField?: string;
+  onAnalyse: () => void;
+}) {
+  const ac = accentColor === "violet"
+    ? { rank: "text-violet-600 bg-violet-50 border-violet-200", badge: "bg-violet-100 text-violet-700", price: "text-violet-600", link: "text-violet-600 hover:text-violet-800" }
+    : { rank: "text-teal-600 bg-teal-50 border-teal-200", badge: "bg-teal-100 text-teal-700", price: "text-teal-600", link: "text-teal-600 hover:text-teal-800" };
+
+  const sentimentBg = (s: string) => {
+    if (s?.toLowerCase().includes("extremely")) return "bg-emerald-200 text-emerald-800";
+    if (s?.toLowerCase().includes("very")) return "bg-emerald-100 text-emerald-700";
+    return `${ac.badge}`;
+  };
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-start gap-3 bg-slate-50 rounded-xl p-4 border border-slate-100 hover:border-slate-200 transition-colors">
+      <span className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border shrink-0 mt-0.5 ${ac.rank}`}>
+        {pick.rank}
+      </span>
+
+      <div className="flex-1 min-w-0 space-y-1">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className="font-bold text-slate-900">{pick.symbol}</span>
+          <span className="text-slate-500 text-sm">{pick.company_name}</span>
+          {pick.sentiment && (
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${sentimentBg(pick.sentiment)}`}>{pick.sentiment}</span>
+          )}
+          {pick.confidence && (
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+              pick.confidence === "Very High" ? "bg-emerald-100 text-emerald-700"
+              : pick.confidence === "High" ? "bg-amber-100 text-amber-700"
+              : "bg-slate-100 text-slate-600"
+            }`}>{pick.confidence}</span>
+          )}
+        </div>
+        {extraLabel && (
+          <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-md border ${accentColor === "violet" ? "bg-violet-50 text-violet-700 border-violet-100" : "bg-teal-50 text-teal-700 border-teal-100"}`}>
+            {extraLabel}
+          </span>
+        )}
+        <p className="text-xs text-slate-600 leading-relaxed">{pick.catalyst || pick.reason}</p>
+        {pick.reason && pick.catalyst && (
+          <p className="text-xs text-slate-500 leading-relaxed">{pick.reason}</p>
+        )}
+      </div>
+
+      <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+        <div className="text-center min-w-[52px]">
+          <p className="text-xs text-slate-400 font-medium">Now</p>
+          <p className="font-bold text-slate-900 text-sm">{pick.current_price > 0 ? `$${pick.current_price.toFixed(2)}` : "—"}</p>
+          {pick.day_change_pct !== null && pick.day_change_pct !== undefined && (
+            <p className={`text-xs font-medium ${pick.day_change_pct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+              {pick.day_change_pct >= 0 ? "+" : ""}{pick.day_change_pct.toFixed(2)}%
+            </p>
+          )}
+        </div>
+        <div className="w-px h-10 bg-slate-200" />
+        <div className="text-center min-w-[52px]">
+          <p className="text-xs text-slate-400 font-medium">4w target</p>
+          <p className={`font-bold text-sm ${ac.price}`}>{pick.predicted_price ? `$${pick.predicted_price.toFixed(2)}` : "—"}</p>
+          <p className="text-xs font-semibold text-emerald-600">▲ +{pick.predicted_change_pct?.toFixed(1)}%</p>
+        </div>
+        <button onClick={onAnalyse} className={`text-xs font-semibold underline underline-offset-2 transition-colors whitespace-nowrap ${ac.link}`}>
+          Analyse →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [symbol, setSymbol] = useState("NVDA");
   const [result, setResult] = useState<any>(null);
@@ -17,7 +90,7 @@ export default function Home() {
   const [chatLoading, setChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const [aiPick, setAiPick] = useState<any>(null);
+  const [aiPicks, setAiPicks] = useState<any[]>([]);
   const [aiPickLoading, setAiPickLoading] = useState(false);
   const [aiPickError, setAiPickError] = useState<string | null>(null);
 
@@ -45,15 +118,15 @@ export default function Home() {
   async function fetchAiPick() {
     setAiPickLoading(true);
     setAiPickError(null);
-    setAiPick(null);
+    setAiPicks([]);
     try {
       const res = await fetch("/api/ai-pick");
       const data = await res.json();
       if (!res.ok) {
-        setAiPickError(data.error || "Failed to fetch AI pick.");
+        setAiPickError(data.error || "Failed to fetch AI picks.");
         return;
       }
-      setAiPick(data);
+      setAiPicks(data.picks ?? []);
     } catch {
       setAiPickError("Network error — please try again.");
     } finally {
@@ -198,7 +271,7 @@ export default function Home() {
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              {aiPickLoading ? "Scanning AI news…" : "Potential AI Stock to Lookout"}
+              {aiPickLoading ? "Scanning AI news…" : "Top 20 AI Stocks to Lookout"}
             </button>
             <button
               onClick={fetchTopPicks}
@@ -208,187 +281,76 @@ export default function Home() {
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
-              {topPicksLoading ? "Curating picks…" : "Top 5 Upcoming Good Stocks"}
+              {topPicksLoading ? "Curating picks…" : "Top 20 Upcoming Good Stocks"}
             </button>
           </div>
           {aiPickError && <p className="mt-2 text-sm text-red-600 font-medium">{aiPickError}</p>}
           {topPicksError && <p className="mt-2 text-sm text-red-600 font-medium">{topPicksError}</p>}
         </div>
 
-        {/* AI Pick card */}
-        {aiPick && (
+        {/* Top 20 AI picks card */}
+        {aiPicks.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm border-2 border-violet-200 p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900">Potential AI Stock to Lookout</h2>
-                <p className="text-xs text-slate-400">Based on latest AI & tech news — educational only</p>
+                <h2 className="text-base font-bold text-slate-900">Top 20 AI Stocks to Lookout</h2>
+                <p className="text-xs text-slate-400">Ranked by conviction — AI catalysts, tech news, company signals — educational only</p>
               </div>
-              <span className={`ml-auto text-xs font-bold px-3 py-1 rounded-full ${
-                aiPick.confidence === "High" ? "bg-emerald-100 text-emerald-700"
-                : aiPick.confidence === "Medium" ? "bg-amber-100 text-amber-700"
-                : "bg-slate-100 text-slate-600"
-              }`}>
-                {aiPick.confidence} Confidence
-              </span>
+              <span className="ml-auto shrink-0 text-xs font-bold px-3 py-1 rounded-full bg-violet-100 text-violet-700">{aiPicks.length} picks</span>
             </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-slate-900">{aiPick.symbol}</span>
-                  <span className="text-slate-500 text-sm font-medium">{aiPick.company_name}</span>
-                </div>
-                {aiPick.key_catalyst && (
-                  <span className="inline-block mt-1 text-xs bg-violet-50 text-violet-700 font-semibold px-2 py-0.5 rounded-md border border-violet-100">
-                    {aiPick.key_catalyst}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex gap-4 sm:gap-6">
-                <div className="text-center">
-                  <p className="text-xs text-slate-500 font-medium">Current Price</p>
-                  <p className="text-xl font-bold text-slate-900 mt-0.5">
-                    {aiPick.current_price > 0 ? `$${aiPick.current_price.toFixed(2)}` : "N/A"}
-                  </p>
-                </div>
-                <div className="w-px bg-slate-200" />
-                <div className="text-center">
-                  <p className="text-xs text-slate-500 font-medium">Predicted ({aiPick.timeframe})</p>
-                  <p className="text-xl font-bold text-violet-600 mt-0.5">
-                    {aiPick.predicted_price > 0 ? `$${aiPick.predicted_price.toFixed(2)}` : "N/A"}
-                  </p>
-                  {aiPick.predicted_change_pct > 0 && (
-                    <span className="text-xs font-semibold text-emerald-600">
-                      ▲ +{aiPick.predicted_change_pct.toFixed(1)}%
-                    </span>
-                  )}
-                </div>
-              </div>
+            <div className="space-y-2">
+              {aiPicks.map((pick) => (
+                <PickRow key={pick.symbol} pick={pick} accentColor="violet" extraLabel={pick.ai_angle} extraField="ai_angle"
+                  onAnalyse={async () => {
+                    setSymbol(pick.symbol); setLoading(true); setError(null); setResult(null); setChatMessages([]);
+                    try {
+                      const res = await fetch(`/api/analyse?symbol=${pick.symbol}`);
+                      const data = await res.json();
+                      if (!res.ok) { setError(data.error || "Failed."); return; }
+                      setResult(data);
+                      setChatMessages([{ role: "assistant", content: `I've finished analysing **${data.symbol}**. Current price is **$${data.quote?.c}**. Ask me anything!` }]);
+                    } catch { setError("Network error."); } finally { setLoading(false); }
+                  }}
+                />
+              ))}
             </div>
-
-            <div className="bg-violet-50 border border-violet-100 rounded-xl p-4">
-              <p className="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1">AI Reasoning</p>
-              <p className="text-sm text-slate-700 leading-relaxed">{aiPick.reason}</p>
-            </div>
-
-            <button
-              onClick={async () => {
-                setSymbol(aiPick.symbol);
-                setLoading(true);
-                setError(null);
-                setResult(null);
-                setChatMessages([]);
-                try {
-                  const res = await fetch(`/api/analyse?symbol=${aiPick.symbol}`);
-                  const data = await res.json();
-                  if (!res.ok) { setError(data.error || "Failed to analyse."); return; }
-                  setResult(data);
-                  setChatMessages([{ role: "assistant", content: `I've finished analysing **${data.symbol}**. Current price is **$${data.quote?.c}**. Ask me anything!` }]);
-                } catch {
-                  setError("Network error — please try again.");
-                } finally {
-                  setLoading(false);
-                }
-              }}
-              className="text-sm text-violet-600 hover:text-violet-800 font-semibold underline underline-offset-2 transition-colors"
-            >
-              Analyse {aiPick.symbol} in detail →
-            </button>
           </div>
         )}
 
-        {/* Top 5 picks card */}
+        {/* Top 20 market picks card */}
         {topPicks.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm border-2 border-teal-200 p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center shrink-0">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900">Top 5 Upcoming Good Stocks</h2>
-                <p className="text-xs text-slate-400">Curated from latest Finnhub market news — educational only</p>
+                <h2 className="text-base font-bold text-slate-900">Top 20 Upcoming Good Stocks</h2>
+                <p className="text-xs text-slate-400">Multi-source market curation across all sectors — educational only</p>
               </div>
+              <span className="ml-auto shrink-0 text-xs font-bold px-3 py-1 rounded-full bg-teal-100 text-teal-700">{topPicks.length} picks</span>
             </div>
-
-            <div className="space-y-3">
-              {topPicks.map((pick, i) => (
-                <div key={pick.symbol} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-slate-50 rounded-xl p-4 border border-slate-100">
-                  <div className="flex items-center gap-3 min-w-[2rem]">
-                    <span className="text-xs font-bold text-teal-600 bg-teal-50 w-6 h-6 rounded-full flex items-center justify-center border border-teal-200">
-                      {i + 1}
-                    </span>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 flex-wrap">
-                      <span className="font-bold text-slate-900">{pick.symbol}</span>
-                      <span className="text-slate-500 text-sm truncate">{pick.company_name}</span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        pick.sentiment === "Very Bullish"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-teal-100 text-teal-700"
-                      }`}>
-                        {pick.sentiment}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">{pick.catalyst}</p>
-                  </div>
-
-                  <div className="flex items-center gap-4 sm:gap-5 shrink-0">
-                    <div className="text-center">
-                      <p className="text-xs text-slate-400 font-medium">Now</p>
-                      <p className="font-bold text-slate-900 text-sm">
-                        {pick.current_price > 0 ? `$${pick.current_price.toFixed(2)}` : "—"}
-                      </p>
-                      {pick.day_change_pct !== null && (
-                        <p className={`text-xs font-medium ${pick.day_change_pct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                          {pick.day_change_pct >= 0 ? "+" : ""}{pick.day_change_pct.toFixed(2)}% today
-                        </p>
-                      )}
-                    </div>
-                    <div className="w-px h-10 bg-slate-200" />
-                    <div className="text-center">
-                      <p className="text-xs text-slate-400 font-medium">Predicted</p>
-                      <p className="font-bold text-teal-600 text-sm">
-                        {pick.predicted_price ? `$${pick.predicted_price.toFixed(2)}` : "—"}
-                      </p>
-                      <p className="text-xs font-semibold text-emerald-600">
-                        ▲ +{pick.predicted_change_pct.toFixed(1)}%
-                      </p>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        setSymbol(pick.symbol);
-                        setLoading(true);
-                        setError(null);
-                        setResult(null);
-                        setChatMessages([]);
-                        try {
-                          const res = await fetch(`/api/analyse?symbol=${pick.symbol}`);
-                          const data = await res.json();
-                          if (!res.ok) { setError(data.error || "Failed to analyse."); return; }
-                          setResult(data);
-                          setChatMessages([{ role: "assistant", content: `I've finished analysing **${data.symbol}**. Current price is **$${data.quote?.c}**. Ask me anything!` }]);
-                        } catch {
-                          setError("Network error — please try again.");
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}
-                      className="text-xs text-teal-600 hover:text-teal-800 font-semibold underline underline-offset-2 transition-colors whitespace-nowrap"
-                    >
-                      Analyse →
-                    </button>
-                  </div>
-                </div>
+            <div className="space-y-2">
+              {topPicks.map((pick) => (
+                <PickRow key={pick.symbol} pick={pick} accentColor="teal" extraLabel={pick.sector} extraField="sector"
+                  onAnalyse={async () => {
+                    setSymbol(pick.symbol); setLoading(true); setError(null); setResult(null); setChatMessages([]);
+                    try {
+                      const res = await fetch(`/api/analyse?symbol=${pick.symbol}`);
+                      const data = await res.json();
+                      if (!res.ok) { setError(data.error || "Failed."); return; }
+                      setResult(data);
+                      setChatMessages([{ role: "assistant", content: `I've finished analysing **${data.symbol}**. Current price is **$${data.quote?.c}**. Ask me anything!` }]);
+                    } catch { setError("Network error."); } finally { setLoading(false); }
+                  }}
+                />
               ))}
             </div>
           </div>

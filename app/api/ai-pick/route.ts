@@ -10,39 +10,61 @@ export async function GET() {
   }
 
   try {
-    const newsRes = await fetch(
-      `https://finnhub.io/api/v1/news?category=technology&token=${finnhubKey}`
-    );
-    const newsData = await newsRes.json();
-    const news = (Array.isArray(newsData) ? newsData : [])
-      .slice(0, 20)
+    // Pull tech news + company-specific news for major AI players
+    const aiTickers = ["NVDA", "MSFT", "GOOGL", "META", "AMZN", "AMD", "AVGO", "ORCL", "PLTR", "ARM", "TSM", "SMCI", "DELL", "CRM", "SNOW"];
+
+    const [techRes, generalRes, ...tickerNewsRes] = await Promise.all([
+      fetch(`https://finnhub.io/api/v1/news?category=technology&token=${finnhubKey}`),
+      fetch(`https://finnhub.io/api/v1/news?category=general&token=${finnhubKey}`),
+      ...aiTickers.map(t =>
+        fetch(`https://finnhub.io/api/v1/company-news?symbol=${t}&from=${daysAgo(14)}&to=${daysAgo(0)}&token=${finnhubKey}`)
+      ),
+    ]);
+
+    const [techNews, generalNews, ...tickerNewsData] = await Promise.all([
+      techRes.json(),
+      generalRes.json(),
+      ...tickerNewsRes.map(r => r.json()),
+    ]);
+
+    const allNews = [
+      ...(Array.isArray(techNews) ? techNews : []).slice(0, 30),
+      ...(Array.isArray(generalNews) ? generalNews : []).slice(0, 20),
+      ...tickerNewsData.flatMap((d, i) =>
+        (Array.isArray(d) ? d : []).slice(0, 3).map((item: any) => ({ ...item, related: aiTickers[i] }))
+      ),
+    ]
+      .sort((a, b) => (b.datetime ?? 0) - (a.datetime ?? 0))
+      .slice(0, 60)
       .map((item: any) => ({
         headline: item.headline,
         summary: item.summary,
         related: item.related,
+        source: item.source,
       }));
 
-    if (news.length === 0) {
-      return NextResponse.json({ error: "No news data available" }, { status: 500 });
-    }
-
-    const prompt = `You are an AI stock research assistant. Based on these latest technology/AI news headlines, identify ONE publicly-traded US stock that has the most potential to gain value in the next 4 weeks due to AI-related developments or upcoming catalysts.
+    const prompt = `You are a top-tier AI stock research analyst. Based on these latest AI/technology news headlines, identify the TOP 20 US-listed stocks most likely to gain value due to AI-related developments, product launches, partnerships, earnings catalysts, or infrastructure demand in the next 4 weeks.
 
 News:
-${JSON.stringify(news, null, 2)}
+${JSON.stringify(allNews, null, 2)}
 
-Return ONLY valid JSON with exactly these keys:
-{
-  "symbol": "TICKER",
-  "company_name": "Full Company Name",
-  "reason": "2-3 sentence explanation of the specific AI catalyst driving this opportunity",
-  "key_catalyst": "One-line summary of the main driver (e.g. 'New LLM product launch', 'AI chip demand surge')",
-  "predicted_price_change_pct": <number between 2 and 30>,
-  "confidence": "Low" | "Medium" | "High",
-  "timeframe": "4 weeks"
-}
+Return ONLY a valid JSON array of exactly 20 objects:
+[
+  {
+    "symbol": "TICKER",
+    "company_name": "Full Company Name",
+    "ai_angle": "Specific AI catalyst or theme driving this pick (1 sentence)",
+    "reason": "2-sentence analysis of the opportunity",
+    "predicted_change_pct": <number 2-35>,
+    "confidence": "Medium" | "High" | "Very High"
+  }
+]
 
-Rules: Only use real US-listed ticker symbols. This is educational only — not financial advice.`;
+Rules:
+- Rank by highest conviction first
+- Mix large caps and high-growth mid caps
+- Only real US-listed tickers
+- Educational purposes only — not financial advice`;
 
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -50,36 +72,50 @@ Rules: Only use real US-listed ticker symbols. This is educational only — not 
     });
 
     const rawOutput = aiResponse.choices[0]?.message?.content ?? "";
-    const match = rawOutput.match(/\{[\s\S]*\}/);
+    const match = rawOutput.match(/\[[\s\S]*\]/);
     if (!match) {
-      return NextResponse.json({ error: "Failed to parse AI pick" }, { status: 500 });
+      return NextResponse.json({ error: "Failed to parse AI picks" }, { status: 500 });
     }
 
-    const pick = JSON.parse(match[0]);
+    const picks: any[] = JSON.parse(match[0]).slice(0, 20);
 
-    const quoteRes = await fetch(
-      `https://finnhub.io/api/v1/quote?symbol=${pick.symbol}&token=${finnhubKey}`
+    const quotes = await Promise.all(
+      picks.map(p =>
+        fetch(`https://finnhub.io/api/v1/quote?symbol=${p.symbol}&token=${finnhubKey}`)
+          .then(r => r.json())
+          .catch(() => null)
+      )
     );
-    const quote = await quoteRes.json();
 
-    const currentPrice: number = quote.c ?? 0;
-    const changePct: number = pick.predicted_price_change_pct ?? 5;
-    const predictedPrice = parseFloat((currentPrice * (1 + changePct / 100)).toFixed(2));
-
-    return NextResponse.json({
-      symbol: pick.symbol,
-      company_name: pick.company_name,
-      reason: pick.reason,
-      key_catalyst: pick.key_catalyst,
-      confidence: pick.confidence,
-      timeframe: pick.timeframe ?? "4 weeks",
-      current_price: currentPrice,
-      predicted_price: predictedPrice,
-      predicted_change_pct: changePct,
-      quote,
+    const enriched = picks.map((pick, i) => {
+      const quote = quotes[i];
+      const currentPrice: number = quote?.c ?? 0;
+      const changePct: number = pick.predicted_change_pct ?? 5;
+      return {
+        rank: i + 1,
+        symbol: pick.symbol,
+        company_name: pick.company_name,
+        ai_angle: pick.ai_angle,
+        reason: pick.reason,
+        confidence: pick.confidence,
+        predicted_change_pct: changePct,
+        current_price: currentPrice,
+        predicted_price: currentPrice > 0
+          ? parseFloat((currentPrice * (1 + changePct / 100)).toFixed(2))
+          : null,
+        day_change_pct: quote?.dp ?? null,
+      };
     });
+
+    return NextResponse.json({ picks: enriched });
   } catch (error) {
     console.error("ai-pick error:", error);
-    return NextResponse.json({ error: "Failed to generate AI pick" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to generate AI picks" }, { status: 500 });
   }
+}
+
+function daysAgo(n: number) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().split("T")[0];
 }
