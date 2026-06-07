@@ -4,6 +4,14 @@ import { useEffect, useRef, useState } from "react";
 
 type Message = { role: "user" | "assistant"; content: string };
 
+const CHEAPO_CATEGORIES = [
+  "AI & Tech", "Biotech", "Pharmaceutical", "Oil & Gas",
+  "Renewable Energy", "Gold & Mining", "Finance & Banking", "Entertainment & Media",
+  "Cannabis", "EV & Clean Tech", "Semiconductors", "Real Estate (REITs)",
+  "Cybersecurity", "Gaming", "Healthcare", "Agriculture",
+  "Space & Aerospace", "Crypto & Blockchain", "Robotics & Automation", "Retail & Consumer",
+];
+
 function PickRow({ pick, accentColor, extraLabel, onAnalyse }: {
   pick: any;
   accentColor: "violet" | "teal";
@@ -103,6 +111,7 @@ export default function Home() {
   const [cheapoPicks, setCheapoPicks] = useState<any[]>([]);
   const [cheapoLoading, setCheapoLoading] = useState(false);
   const [cheapoError, setCheapoError] = useState<string | null>(null);
+  const [cheapoCategory, setCheapoCategory] = useState<string | null>(null);
 
   async function loadForecasts() {
     try {
@@ -139,10 +148,11 @@ export default function Home() {
     finally { setTopPicksLoading(false); }
   }
 
-  async function fetchCheapoPicks() {
+  async function fetchCheapoPicks(category: string) {
+    setCheapoCategory(category);
     setCheapoLoading(true); setCheapoError(null); setCheapoPicks([]);
     try {
-      const res = await fetch("/api/under10-picks");
+      const res = await fetch(`/api/under10-picks?category=${encodeURIComponent(category)}`);
       const data = await res.json();
       if (!res.ok) { setCheapoError(data.error || "Failed to fetch picks."); return; }
       setCheapoPicks(data.picks ?? []);
@@ -249,7 +259,7 @@ export default function Home() {
           </div>
           {error && <p className="mt-3 text-sm text-red-600 font-medium">{error}</p>}
 
-          <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+          <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
             <button
               onClick={fetchAiPick}
               disabled={aiPickLoading}
@@ -270,20 +280,36 @@ export default function Home() {
               </svg>
               {topPicksLoading ? "Curating…" : "Top 10 Good Stocks"}
             </button>
-            <button
-              onClick={fetchCheapoPicks}
-              disabled={cheapoLoading}
-              className="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-semibold px-4 py-3 rounded-xl transition-colors text-sm"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {cheapoLoading ? "Hunting…" : "Top 10 potential for Cheapo ppl"}
-            </button>
           </div>
           {aiPickError && <p className="mt-2 text-sm text-red-600 font-medium">{aiPickError}</p>}
           {topPicksError && <p className="mt-2 text-sm text-red-600 font-medium">{topPicksError}</p>}
-          {cheapoError && <p className="mt-2 text-sm text-red-600 font-medium">{cheapoError}</p>}
+
+          {/* Cheapo category picker */}
+          <div className="mt-3 pt-3 border-t border-slate-100">
+            <div className="flex items-center gap-2 mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-orange-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-xs font-semibold text-slate-600">Top 10 potential for Cheapo ppl <span className="text-orange-500">(&lt;$10)</span> — pick a category:</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {CHEAPO_CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => fetchCheapoPicks(cat)}
+                  disabled={cheapoLoading}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors disabled:opacity-50 ${
+                    cheapoCategory === cat
+                      ? "bg-orange-500 border-orange-500 text-white"
+                      : "bg-white border-orange-200 text-orange-600 hover:bg-orange-50"
+                  }`}
+                >
+                  {cheapoLoading && cheapoCategory === cat ? "…" : cat}
+                </button>
+              ))}
+            </div>
+            {cheapoError && <p className="mt-2 text-sm text-red-600 font-medium">{cheapoError}</p>}
+          </div>
         </div>
 
         {/* Top 10 AI picks card */}
@@ -346,8 +372,9 @@ export default function Home() {
               <div className="min-w-0">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900">
                   Top 10 potential for Cheapo ppl
+                  {cheapoCategory && <span className="ml-2 text-orange-600">— {cheapoCategory}</span>}
                 </h2>
-                <p className="text-xs text-slate-400 hidden sm:block">Real-time price verified under $10 — all sectors — educational only</p>
+                <p className="text-xs text-slate-400 hidden sm:block">Real-time price verified under $10 — {cheapoCategory ?? "all sectors"} — educational only</p>
               </div>
               <span className="ml-auto shrink-0 text-xs font-bold px-2 py-1 rounded-full bg-orange-100 text-orange-700">{cheapoPicks.length}</span>
             </div>
