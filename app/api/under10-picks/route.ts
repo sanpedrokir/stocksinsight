@@ -60,19 +60,26 @@ export async function GET(request: Request) {
         related: item.related,
       }));
 
-    const prompt = `You are a stock research analyst specialising in small-cap and low-priced stocks. Based on the news below, suggest 20 US-listed stocks in the **${category}** sector that currently trade below $10 and have strong upcoming positive catalysts.
+    const prompt = `You are an elite small-cap stock analyst. Your job is to find the HIGHEST POTENTIAL stocks in the **${category}** sector that currently trade below $10.
 
-Focus ONLY on ${category} companies. Only include stocks that genuinely belong to this sector.
-Focus on: small caps, micro caps, early-stage, turnaround plays, and sector momentum stocks priced below $10 on NYSE or NASDAQ.
+STRICT CRITERIA — only include a stock if it meets ALL of these:
+1. Genuinely belongs to the ${category} sector
+2. Has a SPECIFIC upcoming positive catalyst within the next 1–6 weeks (e.g. earnings beat expected, FDA approval pending, partnership announced, product launch, regulatory green light, sector momentum surge, short squeeze setup, or institutional accumulation signal)
+3. Has REAL upside potential — minimum 10–15% expected gain based on the catalyst
+4. Is actively traded on NYSE or NASDAQ (not OTC pink sheets)
+5. Is NOT a stock in a long-term downtrend with no recovery signal
 
-News:
+DO NOT include: stocks just because they are cheap, dying companies, or stocks with no clear near-term catalyst. Quality over quantity.
+
+News context:
 ${JSON.stringify(news, null, 2)}
 
 Return ONLY a valid JSON array of exactly 20 objects, no markdown:
-[{"symbol":"TICKER","company_name":"Name","sector":"${category}","catalyst":"Specific upcoming positive catalyst (1 sentence)","sentiment":"Bullish","predicted_change_pct":12}]
+[{"symbol":"TICKER","company_name":"Name","sector":"${category}","catalyst":"Specific upcoming catalyst and why it drives price up (1–2 sentences)","sentiment":"Very Bullish","predicted_change_pct":18}]
 
 sentiment values: "Bullish" | "Very Bullish" | "Extremely Bullish"
-Rank highest conviction first. Only real US-listed tickers trading under $10. Educational only.`;
+predicted_change_pct: realistic upside % from the catalyst — minimum 10, be bold but honest.
+Rank by highest conviction and upside potential first. Educational only.`;
 
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o-mini",
