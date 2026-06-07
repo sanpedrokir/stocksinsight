@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Stocky</string>
+    <string name="title_activity_main">Stocky</string>
+    <string name="package_name">com.stockyai.app</string>
+    <string name="custom_url_scheme">com.stockyai.app</string>
+</resources>

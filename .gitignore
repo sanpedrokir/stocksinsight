@@ -16,6 +16,14 @@
 # next.js
 /.next/
 /out/
+!out/index.html
+
+# android build artifacts (keep source, ignore build output)
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/.idea/
 
 # production
 /build
