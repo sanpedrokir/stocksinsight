@@ -12,6 +12,9 @@ frontend:
         - echo "DATABASE_URL=$DATABASE_URL" >> .env.production
         - echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> .env.production
         - echo "FINNHUB_API_KEY=$FINNHUB_API_KEY" >> .env.production
+        - echo "LANGCHAIN_TRACING_V2=$LANGCHAIN_TRACING_V2" >> .env.production
+        - echo "LANGCHAIN_API_KEY=$LANGCHAIN_API_KEY" >> .env.production
+        - echo "LANGCHAIN_PROJECT=$LANGCHAIN_PROJECT" >> .env.production
         - npm run build
         - cp .env.production .next/standalone/.env.production 2>/dev/null || true
   artifacts:
