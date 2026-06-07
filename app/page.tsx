@@ -44,24 +44,28 @@ export default function Home() {
     setResult(null);
     setChatMessages([]);
 
-    const res = await fetch(`/api/analyse?symbol=${symbol.trim().toUpperCase()}`);
-    const data = await res.json();
+    try {
+      const res = await fetch(`/api/analyse?symbol=${symbol.trim().toUpperCase()}`);
+      const data = await res.json();
 
-    if (!res.ok) {
-      setError(data.error || "Failed to analyse the stock.");
+      if (!res.ok) {
+        setError(data.error || "Failed to analyse the stock.");
+        return;
+      }
+
+      setResult(data);
+
+      setChatMessages([
+        {
+          role: "assistant",
+          content: `I've finished analysing **${data.symbol}**. The current price is **$${data.quote?.c}** with a ${(data.quote?.dp ?? 0) >= 0 ? "+" : ""}${data.quote?.dp}% change today. Ask me anything about this stock!`,
+        },
+      ]);
+    } catch {
+      setError("Network error — please check your connection and try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setResult(data);
-    setLoading(false);
-
-    setChatMessages([
-      {
-        role: "assistant",
-        content: `I've finished analysing **${data.symbol}**. The current price is **$${data.quote?.c}** with a ${(data.quote?.dp ?? 0) >= 0 ? "+" : ""}${data.quote?.dp}% change today. Ask me anything about this stock!`,
-      },
-    ]);
   }
 
   async function sendChat() {

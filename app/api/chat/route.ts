@@ -46,15 +46,17 @@ User: ${message}
 Assistant:`;
 
   try {
-    const aiResponse = await openai.responses.create({
-      model: "gpt-4.1-mini",
-      input: prompt,
+    const aiResponse = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
     });
 
-    const reply =
-      typeof aiResponse.output_text === "string"
-        ? aiResponse.output_text.trim()
-        : "I couldn't generate a response. Please try again.";
+    const reply = (aiResponse.choices[0]?.message?.content ?? "").trim();
 
     return NextResponse.json({ reply });
   } catch (error) {

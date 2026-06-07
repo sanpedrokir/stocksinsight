@@ -92,23 +92,18 @@ summary, sentiment, opportunities, risks, four_week_outlook, eight_week_outlook,
 Do not include any markdown formatting.
 `;
 
-    const aiResponse = await openai.responses.create({
-      model: "gpt-4.1-mini",
-      input: prompt,
+    const aiResponse = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
     });
 
     const rawOutput =
-      typeof aiResponse.output_text === "string"
-        ? aiResponse.output_text
-        : Array.isArray(aiResponse.output)
-        ? aiResponse.output
-            .map((item: any) =>
-              Array.isArray(item.content)
-                ? item.content.map((content: any) => content.text ?? "").join("\n")
-                : ""
-            )
-            .join("\n")
-        : "";
+      aiResponse.choices[0]?.message?.content ?? "";
 
     const analysis =
       extractAnalysis(rawOutput) || {
