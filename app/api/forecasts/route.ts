@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 
 export async function GET() {
   try {
+    console.log("Fetching forecasts...");
     const forecasts = await sql`
       SELECT *
       FROM stock_forecasts
@@ -10,9 +11,10 @@ export async function GET() {
       LIMIT 20
     `;
 
-    return NextResponse.json({ forecasts });
+    console.log("Forecasts fetched successfully:", forecasts?.length ?? 0);
+    return NextResponse.json({ forecasts: forecasts || [] });
   } catch (error) {
     console.error("fetch forecasts error:", error);
-    return NextResponse.json({ forecasts: [] });
+    return NextResponse.json({ error: String(error), forecasts: [] }, { status: 500 });
   }
 }
