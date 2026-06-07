@@ -16,11 +16,11 @@ export async function GET() {
   }
 
   try {
-    // Phase 1: fetch 3 news sources only (keeps well under rate limit)
-    const [techRes, generalRes, mergerRes] = await Promise.allSettled([
+    // Phase 1: tech news only — no general feed to avoid non-AI companies bleeding in
+    const [techRes, nvdaRes, msftRes] = await Promise.allSettled([
       fetch(`https://finnhub.io/api/v1/news?category=technology&token=${finnhubKey}`),
-      fetch(`https://finnhub.io/api/v1/news?category=general&token=${finnhubKey}`),
       fetch(`https://finnhub.io/api/v1/company-news?symbol=NVDA&from=${daysAgo(7)}&to=${daysAgo(0)}&token=${finnhubKey}`),
+      fetch(`https://finnhub.io/api/v1/company-news?symbol=MSFT&from=${daysAgo(7)}&to=${daysAgo(0)}&token=${finnhubKey}`),
     ]);
 
     async function safeJson(r: PromiseSettledResult<Response>) {
@@ -28,16 +28,16 @@ export async function GET() {
       try { return await r.value.json(); } catch { return []; }
     }
 
-    const [tech, general, nvdaNews] = await Promise.all([
+    const [tech, nvdaNews, msftNews] = await Promise.all([
       safeJson(techRes),
-      safeJson(generalRes),
-      safeJson(mergerRes),
+      safeJson(nvdaRes),
+      safeJson(msftRes),
     ]);
 
     const allNews = [
-      ...(Array.isArray(tech) ? tech : []).slice(0, 25),
-      ...(Array.isArray(general) ? general : []).slice(0, 15),
-      ...(Array.isArray(nvdaNews) ? nvdaNews : []).slice(0, 10),
+      ...(Array.isArray(tech) ? tech : []).slice(0, 30),
+      ...(Array.isArray(nvdaNews) ? nvdaNews : []).slice(0, 8),
+      ...(Array.isArray(msftNews) ? msftNews : []).slice(0, 8),
     ]
       .sort((a: any, b: any) => (b.datetime ?? 0) - (a.datetime ?? 0))
       .slice(0, 40)
@@ -48,13 +48,17 @@ export async function GET() {
       }));
 
     // Phase 2: GPT picks 20 AI stocks
-    const prompt = `You are a top-tier AI stock analyst. Based on these latest AI/technology news headlines, identify the TOP 10 US-listed stocks most likely to gain value from AI-related developments in the next 4 weeks.
+    const prompt = `You are a top-tier AI stock analyst. Based on these latest technology news headlines, identify the TOP 10 US-listed stocks most likely to gain value from AI-related developments in the next 4 weeks.
+
+STRICT ELIGIBILITY: Only include companies where AI is a CORE part of the business — semiconductors, AI chips, cloud/AI infrastructure, AI software platforms, LLM developers, AI data centers, robotics, or companies deriving significant direct revenue from AI products.
+
+DO NOT include: airlines, media/entertainment (Disney, Netflix), retail, consumer goods, defence/aerospace (Boeing, Lockheed), banks, pharma, or any company where "AI" is just a minor tool they use internally. If you cannot point to a direct AI revenue line or AI product, exclude it.
 
 News:
 ${JSON.stringify(allNews, null, 2)}
 
 Return ONLY a valid JSON array of exactly 10 objects, no markdown:
-[{"symbol":"TICKER","company_name":"Name","ai_angle":"Specific AI catalyst (1 sentence)","reason":"2-sentence analysis","predicted_change_pct":5,"confidence":"High"}]
+[{"symbol":"TICKER","company_name":"Name","ai_angle":"Specific AI product or revenue catalyst (1 sentence)","reason":"2-sentence analysis","predicted_change_pct":5,"confidence":"High"}]
 
 confidence values: "Medium" | "High" | "Very High"
 Rank highest conviction first. Only real US-listed tickers. Educational only.`;
