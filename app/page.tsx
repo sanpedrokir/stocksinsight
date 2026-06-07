@@ -16,7 +16,6 @@ function PickRow({ pick, accentColor, extraLabel, onAnalyse }: {
   pick: any;
   accentColor: "violet" | "teal";
   extraLabel?: string;
-  extraField?: string;
   onAnalyse: () => void;
 }) {
   const ac = accentColor === "violet"
@@ -77,7 +76,9 @@ function PickRow({ pick, accentColor, extraLabel, onAnalyse }: {
         <div className="text-center min-w-[48px]">
           <p className="text-xs text-slate-400 font-medium">4w target</p>
           <p className={`font-bold text-sm ${ac.price}`}>{pick.predicted_price ? `$${pick.predicted_price.toFixed(2)}` : "—"}</p>
-          <p className="text-xs font-semibold text-emerald-600">▲ +{pick.predicted_change_pct?.toFixed(1)}%</p>
+          {pick.predicted_change_pct != null && (
+            <p className="text-xs font-semibold text-emerald-600">▲ +{pick.predicted_change_pct.toFixed(1)}%</p>
+          )}
         </div>
         <button onClick={onAnalyse} className={`ml-auto text-xs font-semibold underline underline-offset-2 transition-colors whitespace-nowrap ${ac.link}`}>
           Analyse →
@@ -329,7 +330,7 @@ export default function Home() {
             </div>
             <div className="space-y-2">
               {aiPicks.map((pick) => (
-                <PickRow key={pick.symbol} pick={pick} accentColor="violet" extraLabel={pick.ai_angle} extraField="ai_angle"
+                <PickRow key={pick.symbol} pick={pick} accentColor="violet" extraLabel={pick.ai_angle}
                   onAnalyse={() => analysePickStock(pick.symbol)} />
               ))}
             </div>
@@ -353,7 +354,7 @@ export default function Home() {
             </div>
             <div className="space-y-2">
               {topPicks.map((pick) => (
-                <PickRow key={pick.symbol} pick={pick} accentColor="teal" extraLabel={pick.sector} extraField="sector"
+                <PickRow key={pick.symbol} pick={pick} accentColor="teal" extraLabel={pick.sector}
                   onAnalyse={() => analysePickStock(pick.symbol)} />
               ))}
             </div>
@@ -414,8 +415,10 @@ export default function Home() {
                     <div className="w-px h-8 bg-slate-200" />
                     <div className="text-center min-w-[48px]">
                       <p className="text-xs text-slate-400 font-medium">Target</p>
-                      <p className="font-bold text-orange-600 text-sm">${pick.predicted_price?.toFixed(2)}</p>
-                      <p className="text-xs font-semibold text-emerald-600">▲ +{pick.predicted_change_pct?.toFixed(1)}%</p>
+                      <p className="font-bold text-orange-600 text-sm">{pick.predicted_price != null ? `$${pick.predicted_price.toFixed(2)}` : "—"}</p>
+                      {pick.predicted_change_pct != null && (
+                        <p className="text-xs font-semibold text-emerald-600">▲ +{pick.predicted_change_pct.toFixed(1)}%</p>
+                      )}
                     </div>
                     <button
                       onClick={() => analysePickStock(pick.symbol)}
