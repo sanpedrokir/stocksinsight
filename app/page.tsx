@@ -115,6 +115,16 @@ export default function Home() {
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages]);
 
+  // Show greeting when chat opens for the first time
+  useEffect(() => {
+    if (chatOpen && chatMessages.length === 0) {
+      setChatMessages([{
+        role: "assistant",
+        content: "Hi! I'm Stocky AI — ask me anything about stocks, markets, sectors, earnings, or investing concepts. What would you like to know?",
+      }]);
+    }
+  }, [chatOpen]);
+
   async function fetchAiPick() {
     setAiPickLoading(true); setAiPickError(null); setAiPicks([]);
     try {
@@ -542,17 +552,14 @@ export default function Home() {
           <div className="bg-indigo-600 text-white px-4 py-3 flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-indigo-400 flex items-center justify-center text-xs font-bold shrink-0">AI</div>
             <div className="min-w-0">
-              <p className="font-semibold text-sm">Stock Research Agent</p>
-              <p className="text-indigo-200 text-xs truncate">{result ? `Analysing ${result.symbol}` : "Ask me about any stock"}</p>
+              <p className="font-semibold text-sm">Stocky AI</p>
+              <p className="text-indigo-200 text-xs truncate">
+                {result ? `Context: ${result.symbol} loaded` : "Stocks & markets only"}
+              </p>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
-            {chatMessages.length === 0 && (
-              <p className="text-sm text-slate-500 text-center mt-4">
-                {result ? "Ask me anything about this stock!" : "Analyse a stock first, then ask me questions."}
-              </p>
-            )}
             {chatMessages.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
@@ -573,7 +580,7 @@ export default function Home() {
           <div className="border-t border-slate-200 p-3 flex gap-2">
             <input
               className="flex-1 border-2 border-slate-300 rounded-xl px-3 py-2 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-colors"
-              placeholder="Ask about this stock…"
+              placeholder="Ask about any stock or market…"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendChat()}
