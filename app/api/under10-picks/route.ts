@@ -22,6 +22,8 @@ const CATEGORY_FEEDS: Record<string, string[]> = {
   "Crypto & Blockchain":    ["crypto", "technology"],
   "Robotics & Automation":  ["technology"],
   "Retail & Consumer":      ["general"],
+  "Quantum":                ["technology", "general"],
+  "Quantinum":              ["technology", "general"],
 };
 
 export async function GET(request: Request) {

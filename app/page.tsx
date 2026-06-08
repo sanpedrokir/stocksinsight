@@ -10,6 +10,7 @@ const CHEAPO_CATEGORIES = [
   "Cannabis", "EV & Clean Tech", "Semiconductors", "Real Estate (REITs)",
   "Cybersecurity", "Gaming", "Healthcare", "Agriculture",
   "Space & Aerospace", "Crypto & Blockchain", "Robotics & Automation", "Retail & Consumer",
+  "Quantum", "Quantinum",
 ];
 
 function PickRow({ pick, accentColor, extraLabel, onAnalyse }: {
