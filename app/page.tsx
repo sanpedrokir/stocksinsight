@@ -89,7 +89,7 @@ function PickRow({ pick, accentColor, extraLabel, onAnalyse }: {
 }
 
 export default function Home() {
-  const [symbol, setSymbol] = useState("NVDA");
+  const [symbol, setSymbol] = useState("");
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -173,7 +173,7 @@ export default function Home() {
     try {
       const res = await fetch(`/api/analyse?symbol=${symbol.trim().toUpperCase()}`);
       const data = await res.json();
-      if (!res.ok) { setError(data.error || "Failed to analyse the stock."); return; }
+      if (!res.ok) { setError(data.error || "Invalid symbol — please check and try again."); setSymbol(""); return; }
       setResult(data);
       setChatMessages([{
         role: "assistant",
@@ -252,7 +252,8 @@ export default function Home() {
               value={symbol}
               onChange={(e) => setSymbol(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === "Enter" && analyseStock()}
-              placeholder="e.g. AAPL, TSLA"
+              placeholder="e.g. AAPL, TSLA, NVDA"
+              autoFocus
             />
             <button
               onClick={analyseStock}
