@@ -132,7 +132,8 @@ Rank by highest conviction and upside potential first. Educational only.`;
 
     return NextResponse.json({ picks: enriched });
   } catch (error) {
-    console.error("under10-picks error:", error);
-    return NextResponse.json({ error: "Failed to generate picks" }, { status: 500 });
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("under10-picks error:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
