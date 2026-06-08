@@ -54,12 +54,14 @@ export async function GET() {
     }
 
     // Phase 2: GPT picks stocks across all sectors, targeting under $10
-    const prompt = `You are an elite stock research analyst. Based on these latest market news headlines, identify 25 US-listed stocks with strong upcoming positive catalysts across ALL sectors in the next 2-4 weeks — focusing on smaller names currently trading between $0.50 and $15.
+    const prompt = `You are an elite stock research analyst. Based on these latest market news headlines, identify 15 US-listed stocks with strong upcoming positive catalysts across ALL sectors in the next 2-4 weeks.
+
+PRICE REQUIREMENT: ONLY suggest stocks currently priced under $10. Think small-cap and micro-cap names — NOT Apple, Tesla, Amazon, Google, or any large/mid-cap. Suggest tickers that trade in the $0.50–$9.99 range with real catalysts.
 
 News:
 ${JSON.stringify(combined, null, 2)}
 
-Return ONLY a valid JSON array of exactly 25 objects, no markdown:
+Return ONLY a valid JSON array of exactly 15 objects, no markdown:
 [{"symbol":"TICKER","company_name":"Name","sector":"Sector","catalyst":"Specific positive catalyst (1 sentence)","sentiment":"Very Bullish","predicted_change_pct":8,"risk_level":"Medium"}]
 
 sentiment values: "Bullish" | "Very Bullish" | "Extremely Bullish"
@@ -69,7 +71,7 @@ Rank highest conviction first. Diversify across 5+ sectors. Only real US-listed 
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 2500,
+      max_tokens: 2000,
     });
 
     const rawOutput = aiResponse.choices[0]?.message?.content ?? "";
@@ -78,7 +80,7 @@ Rank highest conviction first. Diversify across 5+ sectors. Only real US-listed 
       return NextResponse.json({ error: "Failed to parse picks" }, { status: 500 });
     }
 
-    const candidates: any[] = JSON.parse(match[0]).slice(0, 25);
+    const candidates: any[] = JSON.parse(match[0]).slice(0, 15);
 
     // Phase 3: fetch quotes and filter to under $10
     const quotesRaw = await Promise.allSettled(

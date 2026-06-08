@@ -76,9 +76,9 @@ DO NOT include: stocks just because they are cheap, dying companies, or stocks w
 News context:
 ${JSON.stringify(news, null, 2)}
 
-IMPORTANT: Many of your suggestions will be verified against live prices. To ensure 10 qualifying results survive, return 25 candidates — include stocks currently priced between $0.50 and $15 so the live price filter has enough to work with.
+PRICE REQUIREMENT: ONLY suggest stocks currently priced under $10 — small-cap and micro-cap names only. Do NOT suggest large or mid-cap stocks.
 
-Return ONLY a valid JSON array of exactly 25 objects, no markdown:
+Return ONLY a valid JSON array of exactly 15 objects, no markdown:
 [{"symbol":"TICKER","company_name":"Name","sector":"${category}","catalyst":"Specific upcoming catalyst and why it drives price up (1–2 sentences)","sentiment":"Very Bullish","predicted_change_pct":18}]
 
 sentiment values: "Bullish" | "Very Bullish" | "Extremely Bullish"
@@ -88,7 +88,7 @@ Rank by highest conviction and upside potential first. Educational only.`;
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 2500,
+      max_tokens: 2000,
     });
 
     const rawOutput = aiResponse.choices[0]?.message?.content ?? "";
@@ -97,7 +97,7 @@ Rank by highest conviction and upside potential first. Educational only.`;
       return NextResponse.json({ error: "Failed to parse picks" }, { status: 500 });
     }
 
-    const candidates: any[] = JSON.parse(match[0]).slice(0, 25);
+    const candidates: any[] = JSON.parse(match[0]).slice(0, 15);
 
     const quotesRaw = await Promise.allSettled(
       candidates.map(p =>

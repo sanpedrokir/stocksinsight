@@ -46,16 +46,16 @@ export async function GET() {
       }));
 
     // Phase 2: GPT picks AI stocks under $10
-    const prompt = `You are a top-tier AI stock analyst. Based on these latest technology news headlines, identify 25 US-listed stocks most likely to gain value from AI-related developments in the next 4 weeks — focusing on smaller, less-covered names currently trading between $0.50 and $15.
+    const prompt = `You are a top-tier AI stock analyst. Based on these latest technology news headlines, identify 15 US-listed AI stocks most likely to gain value from AI-related developments in the next 4 weeks.
 
-STRICT ELIGIBILITY: Only include companies where AI is a CORE part of the business — semiconductors, AI chips, cloud/AI infrastructure, AI software platforms, LLM developers, AI data centers, robotics, or companies deriving significant direct revenue from AI products.
+PRICE REQUIREMENT: ONLY suggest stocks currently priced under $10. Think small-cap and micro-cap AI names — NOT Nvidia, Microsoft, Google, Apple, Meta, Amazon, or any large-cap. Target tickers like SOUN, BBAI, SYNTX, AIXI, INPX, or similar micro/small-cap AI plays.
 
-DO NOT include: airlines, media/entertainment (Disney, Netflix), retail, consumer goods, defence/aerospace (Boeing, Lockheed), banks, pharma, or any company where "AI" is just a minor tool they use internally. If you cannot point to a direct AI revenue line or AI product, exclude it.
+STRICT ELIGIBILITY: Only include companies where AI is a CORE part of the business — AI chips, cloud/AI infrastructure, AI software platforms, LLM tools, AI data, robotics, or direct AI revenue.
 
 News:
 ${JSON.stringify(allNews, null, 2)}
 
-Return ONLY a valid JSON array of exactly 25 objects, no markdown:
+Return ONLY a valid JSON array of exactly 15 objects, no markdown:
 [{"symbol":"TICKER","company_name":"Name","ai_angle":"Specific AI product or revenue catalyst (1 sentence)","reason":"2-sentence analysis","predicted_change_pct":5,"confidence":"High"}]
 
 confidence values: "Medium" | "High" | "Very High"
@@ -64,7 +64,7 @@ Rank highest conviction first. Only real US-listed tickers. Educational only.`;
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 2500,
+      max_tokens: 2000,
     });
 
     const rawOutput = aiResponse.choices[0]?.message?.content ?? "";
@@ -73,7 +73,7 @@ Rank highest conviction first. Only real US-listed tickers. Educational only.`;
       return NextResponse.json({ error: "Failed to parse AI picks" }, { status: 500 });
     }
 
-    const candidates: any[] = JSON.parse(match[0]).slice(0, 25);
+    const candidates: any[] = JSON.parse(match[0]).slice(0, 15);
 
     // Phase 3: fetch quotes and filter to under $10
     const quotesRaw = await Promise.allSettled(
