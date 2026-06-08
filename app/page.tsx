@@ -141,6 +141,7 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) { setAiPickError(data.error || "Failed to fetch AI picks."); return; }
       setAiPicks(data.picks ?? []);
+      if ((data.picks ?? []).length === 0 && data.message) setAiPickError(data.message);
     } catch { setAiPickError("Network error — please try again."); }
     finally { setAiPickLoading(false); }
   }
@@ -152,6 +153,7 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) { setTopPicksError(data.error || "Failed to fetch top picks."); return; }
       setTopPicks(data.picks ?? []);
+      if ((data.picks ?? []).length === 0 && data.message) setTopPicksError(data.message);
     } catch { setTopPicksError("Network error — please try again."); }
     finally { setTopPicksLoading(false); }
   }

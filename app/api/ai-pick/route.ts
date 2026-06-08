@@ -45,8 +45,8 @@ export async function GET() {
         related: item.related,
       }));
 
-    // Phase 2: GPT picks 20 AI stocks
-    const prompt = `You are a top-tier AI stock analyst. Based on these latest technology news headlines, identify the TOP 10 US-listed stocks most likely to gain value from AI-related developments in the next 4 weeks.
+    // Phase 2: GPT picks AI stocks under $10
+    const prompt = `You are a top-tier AI stock analyst. Based on these latest technology news headlines, identify 25 US-listed stocks most likely to gain value from AI-related developments in the next 4 weeks — focusing on smaller, less-covered names currently trading between $0.50 and $15.
 
 STRICT ELIGIBILITY: Only include companies where AI is a CORE part of the business — semiconductors, AI chips, cloud/AI infrastructure, AI software platforms, LLM developers, AI data centers, robotics, or companies deriving significant direct revenue from AI products.
 
@@ -55,7 +55,7 @@ DO NOT include: airlines, media/entertainment (Disney, Netflix), retail, consume
 News:
 ${JSON.stringify(allNews, null, 2)}
 
-Return ONLY a valid JSON array of exactly 10 objects, no markdown:
+Return ONLY a valid JSON array of exactly 25 objects, no markdown:
 [{"symbol":"TICKER","company_name":"Name","ai_angle":"Specific AI product or revenue catalyst (1 sentence)","reason":"2-sentence analysis","predicted_change_pct":5,"confidence":"High"}]
 
 confidence values: "Medium" | "High" | "Very High"
@@ -64,7 +64,7 @@ Rank highest conviction first. Only real US-listed tickers. Educational only.`;
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 2000,
+      max_tokens: 2500,
     });
 
     const rawOutput = aiResponse.choices[0]?.message?.content ?? "";
@@ -73,37 +73,42 @@ Rank highest conviction first. Only real US-listed tickers. Educational only.`;
       return NextResponse.json({ error: "Failed to parse AI picks" }, { status: 500 });
     }
 
-    const picks: any[] = JSON.parse(match[0]).slice(0, 10);
+    const candidates: any[] = JSON.parse(match[0]).slice(0, 25);
 
-    // Phase 3: fetch all 10 quotes in one batch
+    // Phase 3: fetch quotes and filter to under $10
     const quotesRaw = await Promise.allSettled(
-      picks.map(p =>
+      candidates.map(p =>
         fetch(`https://finnhub.io/api/v1/quote?symbol=${p.symbol}&token=${finnhubKey}`).then(r => r.json())
       )
     );
     const quotes = quotesRaw.map(r => r.status === "fulfilled" ? r.value : null);
 
-    const enriched = picks.map((pick, i) => {
-      const quote = quotes[i];
-      const currentPrice: number = quote?.c ?? 0;
-      const changePct: number = pick.predicted_change_pct ?? 5;
-      return {
-        rank: i + 1,
-        symbol: pick.symbol,
-        company_name: pick.company_name,
-        ai_angle: pick.ai_angle,
-        reason: pick.reason,
-        confidence: pick.confidence,
-        predicted_change_pct: changePct,
-        current_price: currentPrice,
-        predicted_price: currentPrice > 0
-          ? parseFloat((currentPrice * (1 + changePct / 100)).toFixed(2))
-          : null,
-        day_change_pct: quote?.dp ?? null,
-      };
-    });
+    const enriched = candidates
+      .map((pick, i) => {
+        const quote = quotes[i];
+        const currentPrice: number = quote?.c ?? 0;
+        if (currentPrice <= 0 || currentPrice >= 10) return null;
+        const changePct: number = pick.predicted_change_pct ?? 5;
+        return {
+          symbol: pick.symbol,
+          company_name: pick.company_name,
+          ai_angle: pick.ai_angle,
+          reason: pick.reason,
+          confidence: pick.confidence,
+          predicted_change_pct: changePct,
+          current_price: currentPrice,
+          predicted_price: parseFloat((currentPrice * (1 + changePct / 100)).toFixed(2)),
+          day_change_pct: quote?.dp ?? null,
+        };
+      })
+      .filter((p): p is NonNullable<typeof p> => p !== null)
+      .slice(0, 10)
+      .map((pick, i) => ({ ...pick, rank: i + 1 }));
 
-    return NextResponse.json({ picks: enriched });
+    return NextResponse.json({
+      picks: enriched,
+      message: enriched.length === 0 ? "No qualifying AI stocks under $10 found right now — try again later" : undefined,
+    });
   } catch (error) {
     console.error("ai-pick error:", error);
     return NextResponse.json({ error: "Failed to generate AI picks" }, { status: 500 });
