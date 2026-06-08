@@ -164,6 +164,7 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) { setCheapoError(data.error || "Failed to fetch picks."); return; }
       setCheapoPicks(data.picks ?? []);
+      if ((data.picks ?? []).length === 0 && data.message) setCheapoError(data.message);
     } catch { setCheapoError("Network error — please try again."); }
     finally { setCheapoLoading(false); }
   }

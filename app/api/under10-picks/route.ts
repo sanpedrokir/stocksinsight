@@ -76,7 +76,9 @@ DO NOT include: stocks just because they are cheap, dying companies, or stocks w
 News context:
 ${JSON.stringify(news, null, 2)}
 
-Return ONLY a valid JSON array of exactly 20 objects, no markdown:
+IMPORTANT: Many of your suggestions will be verified against live prices. To ensure 10 qualifying results survive, return 25 candidates — include stocks currently priced between $0.50 and $15 so the live price filter has enough to work with.
+
+Return ONLY a valid JSON array of exactly 25 objects, no markdown:
 [{"symbol":"TICKER","company_name":"Name","sector":"${category}","catalyst":"Specific upcoming catalyst and why it drives price up (1–2 sentences)","sentiment":"Very Bullish","predicted_change_pct":18}]
 
 sentiment values: "Bullish" | "Very Bullish" | "Extremely Bullish"
@@ -86,7 +88,7 @@ Rank by highest conviction and upside potential first. Educational only.`;
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 1800,
+      max_tokens: 2500,
     });
 
     const rawOutput = aiResponse.choices[0]?.message?.content ?? "";
@@ -95,7 +97,7 @@ Rank by highest conviction and upside potential first. Educational only.`;
       return NextResponse.json({ error: "Failed to parse picks" }, { status: 500 });
     }
 
-    const candidates: any[] = JSON.parse(match[0]).slice(0, 15);
+    const candidates: any[] = JSON.parse(match[0]).slice(0, 25);
 
     const quotesRaw = await Promise.allSettled(
       candidates.map(p =>
@@ -126,11 +128,10 @@ Rank by highest conviction and upside potential first. Educational only.`;
       .slice(0, 10)
       .map((pick, i) => ({ ...pick, rank: i + 1 }));
 
-    if (enriched.length === 0) {
-      return NextResponse.json({ error: `No qualifying ${category} stocks under $10 found — try again` }, { status: 500 });
-    }
-
-    return NextResponse.json({ picks: enriched });
+    return NextResponse.json({
+      picks: enriched,
+      message: enriched.length === 0 ? `No qualifying ${category} stocks under $10 found right now — try again later` : undefined,
+    });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("under10-picks error:", msg);
