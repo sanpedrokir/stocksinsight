@@ -455,16 +455,22 @@ export default function Home() {
                   </span>
                 </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
                 {[
-                  { label: "Open", value: `$${result.quote.o?.toFixed(2)}` },
+                  { label: "Open",       value: `$${result.quote.o?.toFixed(2)}` },
                   { label: "Prev Close", value: `$${result.quote.pc?.toFixed(2)}` },
-                  { label: "Day High", value: `$${result.quote.h?.toFixed(2)}` },
-                  { label: "Day Low", value: `$${result.quote.l?.toFixed(2)}` },
-                ].map(({ label, value }) => (
+                  { label: "Day High",   value: `$${result.quote.h?.toFixed(2)}` },
+                  { label: "Day Low",    value: `$${result.quote.l?.toFixed(2)}` },
+                  { label: "52W High",   value: result.week52High != null ? `$${result.week52High.toFixed(2)}` : "—", highlight: "emerald" },
+                  { label: "52W Low",    value: result.week52Low  != null ? `$${result.week52Low.toFixed(2)}`  : "—", highlight: "red" },
+                ].map(({ label, value, highlight }) => (
                   <div key={label} className="bg-slate-50 rounded-xl p-3">
                     <p className="text-xs text-slate-500 font-medium">{label}</p>
-                    <p className="text-sm sm:text-base font-bold text-slate-800 mt-0.5">{value}</p>
+                    <p className={`text-sm sm:text-base font-bold mt-0.5 ${
+                      highlight === "emerald" ? "text-emerald-600"
+                      : highlight === "red" ? "text-red-500"
+                      : "text-slate-800"
+                    }`}>{value}</p>
                   </div>
                 ))}
               </div>

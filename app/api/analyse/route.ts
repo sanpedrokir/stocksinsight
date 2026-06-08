@@ -47,16 +47,22 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const quoteUrl = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${finnhubKey}`;
-    const newsUrl = `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${getDate(14)}&to=${getDate(0)}&token=${finnhubKey}`;
+    const quoteUrl   = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${finnhubKey}`;
+    const newsUrl    = `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${getDate(14)}&to=${getDate(0)}&token=${finnhubKey}`;
+    const metricsUrl = `https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${finnhubKey}`;
 
-    const [quoteRes, newsRes] = await Promise.all([
+    const [quoteRes, newsRes, metricsRes] = await Promise.all([
       fetch(quoteUrl),
       fetch(newsUrl),
+      fetch(metricsUrl),
     ]);
 
-    const quote = await quoteRes.json();
-    const newsData = await newsRes.json();
+    const quote       = await quoteRes.json();
+    const newsData    = await newsRes.json();
+    const metricsData = await metricsRes.json();
+
+    const week52High: number | null = metricsData?.metric?.["52WeekHigh"] ?? null;
+    const week52Low:  number | null = metricsData?.metric?.["52WeekLow"]  ?? null;
 
     const news = (Array.isArray(newsData) ? newsData : [])
       .slice(0, 5)
@@ -148,6 +154,8 @@ Do not include any markdown formatting.
     return NextResponse.json({
       symbol,
       quote,
+      week52High,
+      week52Low,
       news,
       analysis,
     });
