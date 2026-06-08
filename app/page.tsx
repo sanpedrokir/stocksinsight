@@ -287,7 +287,7 @@ export default function Home() {
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-orange-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-xs font-semibold text-slate-600">Top 10 potential for Cheapo ppl <span className="text-orange-500">(&lt;$10)</span> — pick a category:</p>
+              <p className="text-xs font-semibold text-slate-600">Top 10 potential <span className="text-indigo-500">(&lt;$10)</span> — pick a category:</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {CHEAPO_CATEGORIES.map((cat) => (
@@ -297,8 +297,8 @@ export default function Home() {
                   disabled={cheapoLoading}
                   className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors disabled:opacity-50 ${
                     cheapoCategory === cat
-                      ? "bg-orange-500 border-orange-500 text-white"
-                      : "bg-white border-orange-200 text-orange-600 hover:bg-orange-50"
+                      ? "bg-indigo-600 border-indigo-600 text-white"
+                      : "bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50"
                   }`}
                 >
                   {cheapoLoading && cheapoCategory === cat ? "…" : cat}
@@ -368,7 +368,7 @@ export default function Home() {
               </div>
               <div className="min-w-0">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900">
-                  Top 10 potential for Cheapo ppl
+                  Top 10 potential
                   {cheapoCategory && <span className="ml-2 text-orange-600">— {cheapoCategory}</span>}
                 </h2>
                 <p className="text-xs text-slate-400 hidden sm:block">Real-time price verified under $10 — {cheapoCategory ?? "all sectors"} — educational only</p>
